@@ -1,9 +1,9 @@
-name: Jaffle Shop DLT Pipeline
+name: DLT Jaffle Shop Pipeline
 
 on:
+  workflow_dispatch:  # Hiermee kun je de workflow handmatig starten
   schedule:
-    - cron: '0 0 * * *'  # Dagelijks om middernacht
-  workflow_dispatch:  # Voor handmatige activering
+    - cron: '0 0 * * *'  # Optioneel: dagelijks om middernacht uitvoeren
 
 jobs:
   run-pipeline:
@@ -12,41 +12,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
-      - name: Set up Python
+      
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-          
+      
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install dlt
-          pip install duckdb  # Nodig voor je DuckDB bestemming
+        run: pip install dlt duckdb
       
       - name: Run DLT pipeline
         run: python jaffle_shop_pipeline.py
-        env:
-          EXTRACT__WORKERS: "6"
-          EXTRACT__DATA_WRITER__FILE_MAX_ITEMS: "100000"
-          DATA_WRITER__BUFFER_MAX_ITEMS: "10000"
-          NORMALIZE__DATA_WRITER__BUFFER_MAX_ITEMS: "20000"
-          NORMALIZE__WORKERS: "3"
-          NORMALIZE__DATA_WRITER__FILE_MAX_ITEMS: "100000"
-          LOAD__WORKERS: "4"
-          
-      - name: Upload pipeline results
-        uses: actions/upload-artifact@v3
-        with:
-          name: dlt-pipeline-data
-          path: |
-            .dlt/
-            jaffle_shop.duckdb
